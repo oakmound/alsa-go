@@ -93,7 +93,7 @@ const (
 	 SND_PCM_FORMAT_U32 	Unsigned 32 bit CPU endian
 	 SND_PCM_FORMAT_FLOAT 	Float 32 bit CPU endian
 	 SND_PCM_FORMAT_FLOAT64 	Float 64 bit CPU endian
-	 SND_PCM_FORMAT_IEC958_SUBFRAME 	IEC-958 CPU Endian 
+	 SND_PCM_FORMAT_IEC958_SUBFRAME 	IEC-958 CPU Endian
 	*/
 )
 
@@ -192,7 +192,7 @@ func (handle *Handle) ApplyHwParams() error {
 		}*/
 
 		var cPeriods _Ctype_uint = _Ctype_uint(handle.Periods)
-		var cDir _Ctype_int = 0 // Exact value is <,=,> the returned one following dir (-1,0,1) 
+		var cDir _Ctype_int = 0 // Exact value is <,=,> the returned one following dir (-1,0,1)
 		err = C.snd_pcm_hw_params_set_periods_near(handle.cHandle, cHwParams, &cPeriods, &cDir)
 		if err < 0 {
 			return errors.New(fmt.Sprintf("Cannot set number of periods. %s",
@@ -231,7 +231,7 @@ func (handle *Handle) ApplyHwParams() error {
 	return nil
 }
 
-// Drain stream. For playback wait for all pending frames to be played and 
+// Drain stream. For playback wait for all pending frames to be played and
 // then stop the PCM. For capture stop PCM permitting to retrieve residual frames.
 func (handle *Handle) Drain() error {
 
@@ -244,7 +244,7 @@ func (handle *Handle) Drain() error {
 
 }
 
-// Drop stream, this function stops the PCM immediately. 
+// Drop stream, this function stops the PCM immediately.
 // The pending samples on the buffer are ignored.
 func (handle *Handle) Drop() error {
 
@@ -294,7 +294,7 @@ func (handle *Handle) MaxSampleRate() (int, error) {
 
 }
 
-// Delay returns the numbers of frames between the time that a frame that 
+// Delay returns the numbers of frames between the time that a frame that
 // is written to the PCM stream and it to be actually audible.
 func (handle *Handle) Delay() (int, error) {
 	var delay C.snd_pcm_sframes_t
