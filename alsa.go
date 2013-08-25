@@ -386,6 +386,12 @@ func (handle *Handle) Read(buf []byte) (n int, err error) {
 
 	n_c := C.snd_pcm_readi(handle.cHandle, unsafe.Pointer(&buf[0]), C.snd_pcm_uframes_t(frames))
 	n = int(n_c)
+
+	// Try to recover some errors
+	if n < 0 {
+		fmt.Printf("snd_pcm_readi negative response: %s (%d)\n", strError(C.int(n_c)), n)
+		n = int(C.snd_pcm_recover(handle.cHandle, C.int(n_c), 1))
+	}
 	if n < 0 {
 		err = errors.New(fmt.Sprintf("Read error: %s", n))
 		return n, err
