@@ -393,19 +393,22 @@ func (handle *Handle) Write(buf []byte) (wrote int, err error) {
 func (handle *Handle) Read(buf []byte) (n int, err error) {
 	frames := len(buf) / handle.SampleSize() / handle.Channels
 
-	n_c := C.snd_pcm_readi(handle.cHandle, unsafe.Pointer(&buf[0]), C.snd_pcm_uframes_t(frames))
-	n = int(n_c)
+	readResponse := C.snd_pcm_readi(handle.cHandle, unsafe.Pointer(&buf[0]), C.snd_pcm_uframes_t(frames))
 
 	// Try to recover some errors
-	if n < 0 {
-		fmt.Printf("snd_pcm_readi negative response: %s (%d)\n", strError(C.int(n_c)), n)
-		n = int(C.snd_pcm_recover(handle.cHandle, C.int(n_c), 1))
+	if readResponse < 0 {
+		cError := C.int(readResponse)
+		fmt.Printf("snd_pcm_readi negative response: %s (%d)\n", strError(cError), n)
+		cError = C.snd_pcm_recover(handle.cHandle, cError, 1)
+		if cError < 0 {
+			err = errors.New(fmt.Sprintf("Read error: %s", strError(cError)))
+			return int(cError), err
+		} else {
+			// Error recovered, return empty read
+			readResponse = 0
+		}
 	}
-	if n < 0 {
-		err = errors.New(fmt.Sprintf("Read error: %s", n))
-		return n, err
-	}
-	return n * handle.FrameSize(), nil
+	return int(readResponse) * handle.FrameSize(), nil
 }
 
 // Pause PCM.
