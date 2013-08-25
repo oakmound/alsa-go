@@ -164,6 +164,15 @@ func (handle *Handle) ApplyHwParams() error {
 			strError(err)))
 	}
 
+	// Small mechanism to setup common sampleformats
+	if handle.SampleFormat == 0 {
+		if C.snd_pcm_hw_params_test_format(handle.cHandle, cHwParams, C.SND_PCM_FORMAT_S32_LE) == 0 {
+			handle.SampleFormat = SampleFormatS32LE
+		} else if C.snd_pcm_hw_params_test_format(handle.cHandle, cHwParams, C.SND_PCM_FORMAT_S16_LE) == 0 {
+			handle.SampleFormat = SampleFormatS16LE
+		}
+	}
+
 	err = C.snd_pcm_hw_params_set_format(handle.cHandle, cHwParams, C.snd_pcm_format_t(handle.SampleFormat))
 	if err < 0 {
 		return errors.New(fmt.Sprintf("Cannot set sample format. %s",
