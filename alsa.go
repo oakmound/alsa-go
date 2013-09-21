@@ -364,28 +364,29 @@ func (handle *Handle) AvailUpdate() (freeBytes int, err error) {
 // Write writes given PCM data.
 // Returns wrote value is total bytes was written.
 func (handle *Handle) Write(buf []byte) (wrote int, err error) {
-
 	if handle.Channels == 0 {
 		return 0, errors.New(fmt.Sprintf("Channel count is zero"))
 	}
 
 	frames := len(buf) / handle.SampleSize() / handle.Channels
-	w := C.snd_pcm_writei(handle.cHandle, unsafe.Pointer(&buf[0]), C.snd_pcm_uframes_t(frames))
+	writeResponse := C.snd_pcm_writei(handle.cHandle, unsafe.Pointer(&buf[0]), C.snd_pcm_uframes_t(frames))
 
 	// Underrun? Retry.
-	if w == -C.EPIPE {
-		C.snd_pcm_prepare(handle.cHandle)
-		w = C.snd_pcm_writei(handle.cHandle, unsafe.Pointer(&buf[0]), C.snd_pcm_uframes_t(frames))
+	if writeResponse == -C.EPIPE {
+		cError := C.int(writeResponse)
+		fmt.Printf("snd_pcm_writei negative response: %s (%d)\n", strError(cError), cError)
+		cError = C.snd_pcm_recover(handle.cHandle, cError, 1)
+
+		if cError < 0 {
+			err = errors.New(fmt.Sprintf("Write error: %s", strError(cError)))
+			return int(cError), err
+		} else {
+			// Error recovered, return empty write
+			writeResponse = 0
+		}
 	}
 
-	if w < 0 {
-		return 0, errors.New(fmt.Sprintf("Write failed. %s", strError(_Ctype_int(w))))
-	}
-
-	wrote = int(w)
-	wrote *= handle.FrameSize()
-
-	return wrote, nil
+	return int(writeResponse) * handle.FrameSize(), nil
 }
 
 // Read reads PCM data from microphone device
@@ -398,7 +399,7 @@ func (handle *Handle) Read(buf []byte) (n int, err error) {
 	// Try to recover some errors
 	if readResponse < 0 {
 		cError := C.int(readResponse)
-		fmt.Printf("snd_pcm_readi negative response: %s (%d)\n", strError(cError), n)
+		fmt.Printf("snd_pcm_readi negative response: %s (%d)\n", strError(cError), cError)
 		cError = C.snd_pcm_recover(handle.cHandle, cError, 1)
 		if cError < 0 {
 			err = errors.New(fmt.Sprintf("Read error: %s", strError(cError)))
