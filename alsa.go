@@ -179,14 +179,14 @@ func (handle *Handle) ApplyHwParams() error {
 			strError(err)))
 	}
 
-	var cSampleRate _Ctype_uint = _Ctype_uint(handle.SampleRate)
+	var cSampleRate C.uint = C.uint(handle.SampleRate)
 	err = C.snd_pcm_hw_params_set_rate_near(handle.cHandle, cHwParams, &cSampleRate, nil)
 	if err < 0 {
 		return errors.New(fmt.Sprintf("Cannot set sample rate. %s",
 			strError(err)))
 	}
 
-	err = C.snd_pcm_hw_params_set_channels(handle.cHandle, cHwParams, _Ctype_uint(handle.Channels))
+	err = C.snd_pcm_hw_params_set_channels(handle.cHandle, cHwParams, C.uint(handle.Channels))
 	if err < 0 {
 		return errors.New(fmt.Sprintf("Cannot set number of channels. %s",
 			strError(err)))
@@ -194,13 +194,13 @@ func (handle *Handle) ApplyHwParams() error {
 
 	if handle.Periods > 0 {
 		// Set number of periods. Periods used to be called fragments.
-		/*err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, _Ctype_uint(handle.Periods), 0)
+		/*err = C.snd_pcm_hw_params_set_periods(handle.cHandle, cHwParams, C.uint(handle.Periods), 0)
 		if err < 0 {
 			return os.NewError(fmt.Sprintf("Cannot set number of periods. %s",
 				strError(err)))
 		}*/
 
-		var cPeriods _Ctype_uint = _Ctype_uint(handle.Periods)
+		var cPeriods C.uint = C.uint(handle.Periods)
 		var cDir C.int = 0 // Exact value is <,=,> the returned one following dir (-1,0,1)
 		err = C.snd_pcm_hw_params_set_periods_near(handle.cHandle, cHwParams, &cPeriods, &cDir)
 		if err < 0 {
