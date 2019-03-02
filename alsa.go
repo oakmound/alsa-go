@@ -132,7 +132,7 @@ func (handle *Handle) Open(device string, streamType StreamType, mode int) error
 
 	err := C.snd_pcm_open(&(handle.cHandle), cDevice,
 		C.snd_pcm_stream_t(streamType),
-		_Ctype_int(mode))
+		C.int(mode))
 
 	if err < 0 {
 		return errors.New(fmt.Sprintf("Cannot open audio device '%s'. %s",
@@ -201,7 +201,7 @@ func (handle *Handle) ApplyHwParams() error {
 		}*/
 
 		var cPeriods _Ctype_uint = _Ctype_uint(handle.Periods)
-		var cDir _Ctype_int = 0 // Exact value is <,=,> the returned one following dir (-1,0,1)
+		var cDir C.int = 0 // Exact value is <,=,> the returned one following dir (-1,0,1)
 		err = C.snd_pcm_hw_params_set_periods_near(handle.cHandle, cHwParams, &cPeriods, &cDir)
 		if err < 0 {
 			return errors.New(fmt.Sprintf("Cannot set number of periods. %s",
@@ -309,10 +309,10 @@ func (handle *Handle) Delay() (int, error) {
 	var delay C.snd_pcm_sframes_t
 	err := C.snd_pcm_delay(handle.cHandle, &delay)
 	if err < 0 {
-		return 0, errors.New(fmt.Sprintf("Retrieving delay failed. %s", strError(_Ctype_int(delay))))
+		return 0, errors.New(fmt.Sprintf("Retrieving delay failed. %s", strError(C.int(delay))))
 	}
 
-	return int(_Ctype_int(delay)), nil
+	return int(C.int(delay)), nil
 }
 
 // Skip certain number of frames
@@ -322,28 +322,28 @@ func (handle *Handle) SkipFrames(frames int) (int, error) {
 	var framesForwardable C.snd_pcm_sframes_t
 	framesForwardable = C.snd_pcm_forwardable(handle.cHandle)
 	if framesForwardable < 0 {
-		return 0, errors.New(fmt.Sprintf("Retrieving forwardable frames failed. %s", strError(_Ctype_int(framesForwardable))))
+		return 0, errors.New(fmt.Sprintf("Retrieving forwardable frames failed. %s", strError(C.int(framesForwardable))))
 	}
 
-	if int(_Ctype_int(framesForwardable)) < frames {
-		frames = int(_Ctype_int(framesForwardable))
+	if int(C.int(framesForwardable)) < frames {
+		frames = int(C.int(framesForwardable))
 	}
 
 	// Move application frame position forward.
 	var framesForwarded C.snd_pcm_sframes_t
 	framesForwarded = C.snd_pcm_forward(handle.cHandle, C.snd_pcm_uframes_t(frames))
 	if framesForwarded < 0 {
-		return 0, errors.New(fmt.Sprintf("Cannot forward frames. %s", strError(_Ctype_int(framesForwarded))))
+		return 0, errors.New(fmt.Sprintf("Cannot forward frames. %s", strError(C.int(framesForwarded))))
 	}
 
-	return int(_Ctype_int(framesForwarded)), nil
+	return int(C.int(framesForwarded)), nil
 }
 
 // Wait waits till buffer will be free for some new portion of data or
 // delay time is runs out.
 // true ok value means that PCM stream is ready for I/O, false -- timeout occured.
 func (handle *Handle) Wait(maxDelay int) (ok bool, err error) {
-	res, err := C.snd_pcm_wait(handle.cHandle, _Ctype_int(maxDelay))
+	res, err := C.snd_pcm_wait(handle.cHandle, C.int(maxDelay))
 	if err != nil {
 		return false, errors.New(fmt.Sprintf("Pool failed. %s", err))
 	}
@@ -355,7 +355,7 @@ func (handle *Handle) Wait(maxDelay int) (ok bool, err error) {
 func (handle *Handle) AvailUpdate() (freeBytes int, err error) {
 	frames := C.snd_pcm_avail_update(handle.cHandle)
 	if frames < 0 {
-		return 0, errors.New(fmt.Sprintf("Retriving free buffer size failed. %s", strError(_Ctype_int(frames))))
+		return 0, errors.New(fmt.Sprintf("Retriving free buffer size failed. %s", strError(C.int(frames))))
 	}
 
 	return int(frames) * handle.FrameSize(), nil
@@ -464,7 +464,7 @@ func (handle *Handle) FrameSize() int {
 }
 
 // strError retruns string description of ALSA error by its code.
-func strError(err _Ctype_int) string {
+func strError(err C.int) string {
 	cErrMsg := C.snd_strerror(err)
 
 	return C.GoString(cErrMsg)
